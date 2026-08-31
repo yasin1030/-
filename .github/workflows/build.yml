@@ -9,19 +9,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # این مرحله جدید است: پیدا کردن خودکار پوشه اصلی پروژه
+      - name: Find Project Directory
+        id: find_dir
+        run: |
+          # جستجو برای پیدا کردن پوشه‌ای که فایل pubspec.yaml در آن است
+          DIR=$(find . -name "pubspec.yaml" -exec dirname {} \;)
+          echo "found_dir=$DIR" >> $GITHUB_OUTPUT
+          echo "Project directory found at: $DIR"
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
           channel: 'stable'
-      
+
       - name: Get dependencies
-        run: flutter pub get
+        run: |
+          cd ${{ steps.find_dir.outputs.found_dir }}
+          flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
-        
+        run: |
+          cd ${{ steps.find_dir.outputs.found_dir }}
+          flutter build apk --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          # این خط هم به صورت خودکار مسیر درست را پیدا می‌کند
+          path: ${{ steps.find_dir.outputs.found_dir }}/build/app/outputs/flutter-apk/app-release.apk
